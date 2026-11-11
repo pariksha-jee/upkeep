@@ -1,0 +1,23 @@
+.filter {
+  width: 140px;
+}
+
+.loading {
+  padding: var(--space-10);
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.monitor {
+  font-weight: var(--weight-medium);
+}
+
+.cause {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.paginationWrap {
+  padding: var(--space-3) var(--space-5);
+}

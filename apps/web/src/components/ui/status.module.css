@@ -1,0 +1,68 @@
+/* Status chips: color + icon + text (never color alone — a11y). */
+.dot {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.up {
+  color: var(--color-status-up);
+  background: var(--color-status-up-soft);
+}
+
+.down {
+  color: var(--color-status-down);
+  background: var(--color-status-down-soft);
+}
+
+.paused {
+  color: var(--color-status-paused);
+  background: var(--color-status-paused-soft);
+}
+
+.pending {
+  color: var(--color-status-pending);
+  background: var(--color-status-pending-soft);
+}
+
+/* ── Generic badges ────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.neutral {
+  color: var(--color-text-secondary);
+  background: var(--color-surface-sunken);
+}
+
+.brand {
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.success {
+  color: var(--color-status-up);
+  background: var(--color-status-up-soft);
+}
+
+.danger {
+  color: var(--color-status-down);
+  background: var(--color-status-down-soft);
+}
+
+.warning {
+  color: var(--color-status-pending);
+  background: var(--color-status-pending-soft);
+}

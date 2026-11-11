@@ -1,0 +1,151 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.required {
+  color: var(--color-status-down);
+}
+
+.hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  line-height: var(--leading-normal);
+}
+
+.error {
+  font-size: var(--text-xs);
+  color: var(--color-status-down);
+  line-height: var(--leading-normal);
+}
+
+.input,
+.textarea,
+.select {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  transition:
+    border-color var(--duration-fast) var(--ease),
+    box-shadow var(--duration-fast) var(--ease);
+}
+
+.textarea {
+  min-height: 96px;
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.select {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--color-text-muted) 50%),
+    linear-gradient(135deg, var(--color-text-muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) calc(50% + 2px),
+    calc(100% - 13px) calc(50% + 2px);
+  background-size:
+    5px 5px,
+    5px 5px;
+  background-repeat: no-repeat;
+  padding-right: var(--space-8);
+  cursor: pointer;
+}
+
+.input:hover,
+.textarea:hover,
+.select:hover {
+  border-color: var(--color-text-muted);
+}
+
+.input:focus,
+.textarea:focus,
+.select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+  outline: none;
+}
+
+.invalid {
+  border-color: var(--color-status-down);
+}
+
+.invalid:focus {
+  border-color: var(--color-status-down);
+  box-shadow: 0 0 0 3px var(--color-status-down-soft);
+}
+
+/* ── Switch ────────────────────────────────────────────────────────────── */
+.switchWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+  user-select: none;
+}
+
+.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.switchInput {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.switchTrack {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--color-border-strong);
+  transition: background var(--duration-fast) var(--ease);
+  flex-shrink: 0;
+}
+
+.switchInput:checked + .switchTrack {
+  background: var(--color-primary);
+}
+
+.switchInput:focus-visible + .switchTrack {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.switchThumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background: #fff;
+  box-shadow: var(--shadow-1);
+  transition: transform var(--duration-fast) var(--ease);
+}
+
+.switchInput:checked + .switchTrack .switchThumb {
+  transform: translateX(16px);
+}
+
+.switchLabel {
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+}
