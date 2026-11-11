@@ -1,0 +1,276 @@
+// Upkeep database schema — PostgreSQL.
+// Enums mirror the string unions in @upkeep/core/src/constants.ts (single source: core).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum MonitorType {
+  HTTP
+  TCP
+}
+
+enum MonitorStatus {
+  PENDING
+  UP
+  DOWN
+  PAUSED
+}
+
+enum CheckStatus {
+  UP
+  DOWN
+}
+
+enum TunnelType {
+  SSH
+  OPENVPN
+}
+
+enum TunnelStatus {
+  UNKNOWN
+  CONNECTING
+  CONNECTED
+  DEGRADED
+  EXPIRED
+  FAILED
+}
+
+enum CredentialSource {
+  INLINE
+  SIGNED_URL
+}
+
+enum CredentialProvider {
+  AWS_S3
+  GCP_CS
+}
+
+enum ChannelType {
+  EMAIL
+  SMS
+  WEBHOOK
+}
+
+enum IncidentStatus {
+  OPEN
+  RESOLVED
+}
+
+enum NotificationStatus {
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum DevicePlatform {
+  ANDROID
+  IOS
+}
+
+model User {
+  id              String         @id @default(uuid())
+  email           String         @unique
+  passwordHash    String
+  name            String
+  role            Role           @default(USER)
+  emailVerifiedAt DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  monitors        Monitor[]
+  tunnels         Tunnel[]
+  channels        Channel[]
+  devices         Device[]
+  refreshTokens   RefreshToken[]
+}
+
+model Tunnel {
+  id                  String            @id @default(uuid())
+  userId              String
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                String
+  type                TunnelType
+  credentialSource    CredentialSource  @default(INLINE)
+  credentialProvider  CredentialProvider?
+  // AES-256-GCM blob. INLINE mode: the credential material itself.
+  // SIGNED_URL mode: the signed URL (which carries auth query params — itself a secret).
+  configCipher        String            @db.Text
+  credentialExpiresAt DateTime?
+  fingerprint         String
+  status              TunnelStatus      @default(UNKNOWN)
+  lastError           String?
+  lastErrorAt         DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  monitors            Monitor[]
+
+  @@index([userId])
+}
+
+model Monitor {
+  id                   String        @id @default(uuid())
+  userId               String
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tunnelId             String?
+  tunnel               Tunnel?       @relation(fields: [tunnelId], references: [id], onDelete: SetNull)
+  name                 String
+  type                 MonitorType
+  // HTTP: full URL (http/https). TCP: hostname or IP (port in `port`).
+  target               String
+  port                 Int?
+  method               String?
+  headers              Json?
+  body                 String?       @db.Text
+  keyword              String?
+  expectedStatusCodes  Int[]
+  intervalSeconds      Int
+  timeoutMs            Int           @default(10000)
+  failureThreshold     Int           @default(2)
+  recoveryThreshold    Int           @default(2)
+  enabled              Boolean       @default(true)
+  status               MonitorStatus @default(PENDING)
+  consecutiveFailures  Int           @default(0)
+  consecutiveSuccesses Int           @default(0)
+  lastCheckedAt        DateTime?
+  nextCheckAt          DateTime?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  checks               Check[]
+  incidents            Incident[]
+  bindings             AlertBinding[]
+
+  @@index([userId])
+  // Dispatcher claim index: enabled monitors with next_check_at in the past.
+  @@index([nextCheckAt])
+  @@index([userId, status])
+}
+
+model Check {
+  id             BigInt      @id @default(autoincrement())
+  monitorId      String
+  monitor        Monitor     @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+  status         CheckStatus
+  responseTimeMs Int?
+  statusCode     Int?
+  error          String?
+  checkedAt      DateTime    @default(now())
+
+  @@index([monitorId, checkedAt(sort: Desc)])
+  @@index([checkedAt])
+}
+
+model CheckAggregate {
+  id          BigInt   @id @default(autoincrement())
+  monitorId   String
+  bucketStart DateTime
+  total       Int
+  failed      Int
+  minMs       Int?
+  maxMs       Int?
+  sumMs       BigInt   @default(0)
+
+  @@unique([monitorId, bucketStart])
+  @@index([monitorId, bucketStart])
+}
+
+model Incident {
+  id            String           @id @default(uuid())
+  monitorId     String
+  monitor       Monitor          @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+  status        IncidentStatus   @default(OPEN)
+  startedAt     DateTime         @default(now())
+  resolvedAt    DateTime?
+  cause         String?
+  lastError     String?
+  notifications NotificationLog[]
+
+  @@index([monitorId, status])
+  @@index([startedAt(sort: Desc)])
+}
+
+model Channel {
+  id           String          @id @default(uuid())
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         ChannelType
+  label        String
+  // Non-secret config: { to } for EMAIL/SMS, { url } for WEBHOOK.
+  config       Json
+  // Encrypted secret: webhook signing secret (WEBHOOK). Null for EMAIL/SMS.
+  secretCipher String?         @db.Text
+  verifiedAt   DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  bindings     AlertBinding[]
+  notifications NotificationLog[]
+
+  @@index([userId])
+}
+
+model AlertBinding {
+  id               String    @id @default(uuid())
+  monitorId        String
+  monitor          Monitor   @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+  channelId        String
+  channel          Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  notifyOnDown     Boolean   @default(true)
+  notifyOnRecovery Boolean   @default(true)
+  cooldownMinutes  Int       @default(5)
+  lastNotifiedAt   DateTime?
+
+  @@unique([monitorId, channelId])
+}
+
+model NotificationLog {
+  id         String             @id @default(uuid())
+  incidentId String?
+  incident   Incident?          @relation(fields: [incidentId], references: [id], onDelete: SetNull)
+  channelId  String
+  channel    Channel            @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  type       ChannelType
+  event      String // DOWN | RECOVERY | TEST | SYSTEM
+  status     NotificationStatus
+  error      String?
+  createdAt  DateTime           @default(now())
+
+  @@index([incidentId])
+  @@index([channelId, createdAt(sort: Desc)])
+}
+
+model Device {
+  id         String         @id @default(uuid())
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform   DevicePlatform
+  pushToken  String         @unique
+  appVersion String?
+  lastSeenAt DateTime       @default(now())
+  createdAt  DateTime       @default(now())
+
+  @@index([userId])
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  familyId  String
+  expiresAt DateTime
+  revokedAt DateTime?
+  deviceId  String?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([familyId])
+}
