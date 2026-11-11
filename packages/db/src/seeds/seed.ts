@@ -4,6 +4,16 @@
  * Refuses to run against production (security review finding #6).
  */
 import { hash } from 'argon2';
+
+// Development convenience: pull apps/api/.env when run via `pnpm db:seed`.
+// (ESM imports hoist above this block, but the Prisma client resolves
+// DATABASE_URL lazily at query time, so the ordering is safe.)
+try {
+  process.loadEnvFile(new URL('../../../../apps/api/.env', import.meta.url));
+} catch {
+  // fall back to the ambient environment (CI/prod)
+}
+
 import { prisma } from '../client.js';
 
 if (process.env.NODE_ENV === 'production' && process.env.SEED_ALLOW_PROD !== 'yes-i-know') {
