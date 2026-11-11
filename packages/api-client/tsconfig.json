@@ -1,4 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
+    // Consumer of optional wire fields (meta, uptime24h) — envelope optionality
+    // friction; strictness is enforced in @upkeep/core where the types live.
+    "exactOptionalPropertyTypes": false
+  },
   "include": ["src", "test"]
 }

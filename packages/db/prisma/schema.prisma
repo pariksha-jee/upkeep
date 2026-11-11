@@ -235,8 +235,9 @@ model NotificationLog {
   id         String             @id @default(uuid())
   incidentId String?
   incident   Incident?          @relation(fields: [incidentId], references: [id], onDelete: SetNull)
-  channelId  String
-  channel    Channel            @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  // Null for device-push deliveries (push targets devices, not channels).
+  channelId  String?
+  channel    Channel?           @relation(fields: [channelId], references: [id], onDelete: Cascade)
   type       ChannelType
   event      String // DOWN | RECOVERY | TEST | SYSTEM
   status     NotificationStatus

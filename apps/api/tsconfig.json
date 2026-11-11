@@ -3,7 +3,13 @@
   "compilerOptions": {
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "types": ["node"]
+    "types": ["node"],
+    // Documented deviation from guardrails §3.1: Prisma 6 generated input
+    // types are not exactOptionalPropertyTypes-compatible (optional fields
+    // without `| undefined`), which makes every conditional-spread create/
+    // update call a type error. Pure logic packages (@upkeep/core) keep the
+    // flag enabled.
+    "exactOptionalPropertyTypes": false
   },
   "include": ["src", "test"]
 }

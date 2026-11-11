@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CREDENTIAL_PROVIDERS, DEFAULTS, LIMITS, TUNNEL_TYPES } from '../constants.js';
+import { hasUnsafeOpenVpnDirectives } from '../logic/openvpn-sanitize.js';
 
 const nameField = z.string().min(1).max(LIMITS.tunnelNameMax);
 
@@ -35,6 +36,10 @@ const openVpnConfigSchema = z
   .max(128_000)
   .refine((c) => /^(client|dev |proto |remote )/m.test(c), {
     message: 'value does not look like an OpenVPN client config',
+  })
+  .refine((c) => hasUnsafeOpenVpnDirectives(c).length === 0, {
+    message: (c) =>
+      `config contains disallowed directives (${hasUnsafeOpenVpnDirectives(c).slice(0, 5).join(', ')}) — scripts, routes, proxies and similar directives are rejected for security`,
   });
 
 /**

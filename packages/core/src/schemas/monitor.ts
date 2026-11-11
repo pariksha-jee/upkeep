@@ -10,6 +10,18 @@ import {
 } from '../constants.js';
 import { paginationQuerySchema, uuidSchema } from './common.js';
 
+/**
+ * Security note (SSRF): private/loopback targets are validated in the API
+ * service layer (literal + DNS resolution) because the check is cross-field —
+ * private targets are legal ONLY when the monitor is attached to a tunnel.
+ * The check engine re-validates at connect time (DNS rebinding defense).
+ */
+const headersSchema = z
+  .record(z.string().min(1).max(LIMITS.headerNameMax), z.string().max(LIMITS.headerValueMax))
+  .refine((h) => Object.keys(h).length <= LIMITS.headerCountMax, {
+    message: `at most ${LIMITS.headerCountMax} headers allowed`,
+  });
+
 const commonMonitorFields = {
   name: z.string().min(1).max(LIMITS.monitorNameMax),
   // zod 4's z.enum does not accept readonly number tuples — use a literal union.
@@ -40,11 +52,14 @@ const commonMonitorFields = {
 
 export const createHttpMonitorSchema = z.object({
   type: z.literal('HTTP'),
-  target: z.url().refine((v) => v.startsWith('http://') || v.startsWith('https://'), {
-    message: 'target must be an http(s) URL',
-  }),
+  target: z
+    .url()
+    .max(LIMITS.targetMax)
+    .refine((v) => v.startsWith('http://') || v.startsWith('https://'), {
+      message: 'target must be an http(s) URL',
+    }),
   method: z.enum(HTTP_METHODS).default('GET'),
-  headers: z.record(z.string(), z.string()).optional(),
+  headers: headersSchema.optional(),
   body: z.string().max(LIMITS.bodyMax).optional(),
   keyword: z.string().min(1).max(LIMITS.keywordMax).optional(),
   expectedStatusCodes: z.array(z.number().int().min(100).max(599)).max(10).optional(),
@@ -62,6 +77,8 @@ export const createTcpMonitorSchema = z.object({
   port: z.number().int().min(1).max(65535),
   ...commonMonitorFields,
 });
+// NOTE: private-range target validation for non-tunnel monitors happens in the
+// API service layer (cross-field) and again in the check engine (connect time).
 
 export const createMonitorSchema = z.discriminatedUnion('type', [
   createHttpMonitorSchema,
@@ -80,7 +97,7 @@ export const updateMonitorSchema = z.object({
   tunnelId: uuidSchema.nullable().optional(),
   // HTTP-only fields (ignored for TCP monitors)
   method: z.enum(HTTP_METHODS).optional(),
-  headers: z.record(z.string(), z.string()).nullish(),
+  headers: headersSchema.nullish(),
   body: z.string().max(LIMITS.bodyMax).nullish(),
   keyword: z.string().min(1).max(LIMITS.keywordMax).nullish(),
   expectedStatusCodes: z.array(z.number().int().min(100).max(599)).max(10).nullish(),

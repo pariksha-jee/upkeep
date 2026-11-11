@@ -166,7 +166,8 @@ export type IncidentDto = z.infer<typeof incidentDtoSchema>;
 export const notificationLogDtoSchema = z.object({
   id: z.uuid(),
   incidentId: isoNullable,
-  channelId: z.uuid(),
+  /** Null for device-push deliveries. */
+  channelId: z.uuid().nullable(),
   channelLabel: z.string(),
   type: z.enum(CHANNEL_TYPES),
   event: z.enum(NOTIFY_EVENTS),

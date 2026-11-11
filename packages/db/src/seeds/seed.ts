@@ -1,12 +1,20 @@
 /**
- * Idempotent development seed: demo user, one email channel, two monitors
+ * Idempotent DEVELOPMENT seed: demo user, one email channel, two monitors
  * (self-health + a public endpoint) and bindings. Safe to run repeatedly.
+ * Refuses to run against production (security review finding #6).
  */
 import { hash } from 'argon2';
 import { prisma } from '../client.js';
 
-const DEMO_EMAIL = 'demo@upkeep.dev';
-const DEMO_PASSWORD = 'demo12345';
+if (process.env.NODE_ENV === 'production' && process.env.SEED_ALLOW_PROD !== 'yes-i-know') {
+  process.stderr.write(
+    'Seed refuses to run with NODE_ENV=production (demo credentials). Set SEED_ALLOW_PROD=yes-i-know to override.\n',
+  );
+  process.exit(1);
+}
+
+const DEMO_EMAIL = process.env.SEED_DEMO_EMAIL ?? 'demo@upkeep.dev';
+const DEMO_PASSWORD = process.env.SEED_DEMO_PASSWORD ?? 'demo12345';
 
 async function main(): Promise<void> {
   const user = await prisma.user.upsert({
