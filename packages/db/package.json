@@ -1,0 +1,36 @@
+{
+  "name": "@upkeep/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Prisma schema, migrations, seeds and typed client for Upkeep",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "engines": { "node": ">=22.0.0" },
+  "scripts": {
+    "postinstall": "prisma generate",
+    "generate": "prisma generate",
+    "build": "tsc -p tsconfig.build.json",
+    "migrate": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "seed": "tsx src/seeds/seed.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@prisma/client": "~6.19.3"
+  },
+  "devDependencies": {
+    "prisma": "~6.19.3",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3"
+  }
+}

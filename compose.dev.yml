@@ -1,0 +1,41 @@
+# Development infrastructure only. API/worker/web run on the host with hot reload:
+#   pnpm dev:api | pnpm dev:worker | pnpm dev:web
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: upkeep-postgres
+    environment:
+      POSTGRES_USER: upkeep
+      POSTGRES_PASSWORD: upkeep
+      POSTGRES_DB: upkeep
+    ports:
+      - '5432:5432'
+    volumes:
+      - upkeep-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U upkeep -d upkeep']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: upkeep-redis
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  adminer:
+    image: adminer:4.8.1
+    container_name: upkeep-adminer
+    ports:
+      - '8080:8080'
+    environment:
+      ADMINER_DEFAULT_SERVER: upkeep-postgres
+
+volumes:
+  upkeep-pgdata:

@@ -1,0 +1,25 @@
+# Mandatory .dockerignore (guardrails §11.1)
+.git
+.github
+.husky
+node_modules
+**/node_modules
+npm-debug.log
+pnpm-debug.log
+.env
+.env.*
+!.env.example
+*.md
+docs/
+coverage/
+**/dist
+**/.next
+apps/mobile
+.qa
+assets
+extract
+uploads
+*.pdf
+*.epub
+*.mp4
+*.zip

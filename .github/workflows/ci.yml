@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: lint / typecheck / test / build
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: upkeep
+          POSTGRES_PASSWORD: upkeep
+          POSTGRES_DB: upkeep_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U upkeep -d upkeep_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://upkeep:upkeep@localhost:5432/upkeep_test
+      REDIS_URL: redis://localhost:6379
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Build all workspaces
+        run: pnpm build
+
+      - name: Apply database migrations
+        run: pnpm db:deploy
+
+      - name: API e2e tests
+        env:
+          NODE_ENV: test
+          JWT_ACCESS_SECRET: ci-access-secret-at-least-32-chars!!
+          JWT_REFRESH_SECRET: ci-refresh-secret-at-least-32-chars!
+          ENCRYPTION_KEY: Y2kta2V5LWZvci1jaS1vbmx5LTMyLWJ5dGVzIQ==
+          CORS_ORIGIN: http://localhost:3000
+        run: pnpm test:e2e
+
+  security:
+    name: secret scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker:
+    name: docker image build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: [quality]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: false
+      - name: Build web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: false

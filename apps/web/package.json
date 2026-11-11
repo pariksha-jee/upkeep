@@ -1,0 +1,30 @@
+{
+  "name": "@upkeep/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Upkeep web dashboard — Next.js App Router, pure API consumer",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "clean": "rm -rf .next"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "~5.107.1",
+    "@upkeep/api-client": "workspace:*",
+    "@upkeep/core": "workspace:*",
+    "lucide-react": "~1.72.0",
+    "next": "~16.4.6",
+    "react": "~19.3.1",
+    "react-dom": "~19.3.1",
+    "zustand": "~5.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "~26.6.6",
+    "@types/react": "~19.3.0",
+    "@types/react-dom": "~19.3.0",
+    "typescript": "~5.9.3"
+  }
+}

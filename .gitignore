@@ -1,0 +1,31 @@
+# Dependencies & builds
+node_modules/
+dist/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Logs & OS
+*.log
+.DS_Store
+
+# Mobile build artifacts
+apps/mobile/.expo/
+apps/mobile/web-build/
+*.apk
+*.aab
+*.ipa
+
+# Media / large binaries (guardrails §5.6 — never commit)
+*.pdf
+*.epub
+*.mp4
+*.zip
+uploads/
+extract/

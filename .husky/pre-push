@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+pnpm -r run typecheck
+pnpm -r run test
