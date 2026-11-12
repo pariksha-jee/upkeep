@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Upkeep",
+    "slug": "upkeep",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "upkeep",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#0b0f1a",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#4f46e5"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "android": {
+      "package": "dev.upkeep.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#4f46e5"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "plugins": ["expo-router", "expo-secure-store", "expo-status-bar"],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "apiUrl": "http://10.0.2.2:4000"
+    }
+  }
+}

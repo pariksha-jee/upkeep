@@ -2,6 +2,7 @@
  * Plain (non-inferred) shared types. DTO types with runtime validation live in
  * schemas/response.ts and are inferred from Zod schemas there.
  */
+import type { MonitorType, NotifyEvent } from './constants.js';
 
 /** Standard pagination envelope field returned by list endpoints. */
 export interface PaginationMeta {

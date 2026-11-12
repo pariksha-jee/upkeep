@@ -37,9 +37,10 @@ const openVpnConfigSchema = z
   .refine((c) => /^(client|dev |proto |remote )/m.test(c), {
     message: 'value does not look like an OpenVPN client config',
   })
+  // Static message: function-form messages can throw during issue creation.
   .refine((c) => hasUnsafeOpenVpnDirectives(c).length === 0, {
-    message: (c) =>
-      `config contains disallowed directives (${hasUnsafeOpenVpnDirectives(c).slice(0, 5).join(', ')}) — scripts, routes, proxies and similar directives are rejected for security`,
+    message:
+      'config contains disallowed directives — scripts, routes, proxies and similar directives are rejected for security',
   });
 
 /**

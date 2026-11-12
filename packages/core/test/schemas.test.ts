@@ -15,7 +15,9 @@ describe('createMonitorSchema', () => {
       intervalSeconds: 60,
     });
     expect(parsed.timeoutMs).toBe(10_000);
-    expect(parsed.method).toBe('GET');
+    if (parsed.type === 'HTTP') {
+      expect(parsed.method).toBe('GET');
+    }
     expect(parsed.failureThreshold).toBe(2);
     expect(parsed.channelIds).toEqual([]);
   });
@@ -106,7 +108,9 @@ describe('createTunnelSchema', () => {
       credentialSource: 'SIGNED_URL',
       signedUrl: { provider: 'GCP_CS', url },
     });
-    expect(parsed.signedUrl.provider).toBe('GCP_CS');
+    if (parsed.credentialSource === 'SIGNED_URL') {
+      expect(parsed.signedUrl.provider).toBe('GCP_CS');
+    }
     expect(() =>
       createTunnelSchema.parse({
         type: 'OPENVPN',

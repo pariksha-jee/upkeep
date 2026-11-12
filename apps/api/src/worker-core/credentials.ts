@@ -139,7 +139,7 @@ class HttpsSignedUrlProvider implements RemoteCredentialProvider {
     if (!res.ok) {
       throw new Error(`credential source returned HTTP ${res.status}`);
     }
-    if (res.url !== url && !hostAllowed(new URL(res.url).hostname)) {
+    if (res.url.length > 0 && res.url !== url && !hostAllowed(new URL(res.url).hostname)) {
       throw new Error('credential source redirected to a disallowed host');
     }
     const lengthHeader = res.headers.get('content-length');

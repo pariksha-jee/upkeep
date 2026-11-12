@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { advance } from '../src/logic/state-machine.js';
 import type { MonitorCounters } from '../src/logic/state-machine.js';
+import type { MonitorStatus } from '../src/constants.js';
+import type { StateTransition } from '../src/logic/state-machine.js';
 
 const zero: MonitorCounters = { consecutiveFailures: 0, consecutiveSuccesses: 0 };
 const thresholds = { failureThreshold: 2, recoveryThreshold: 2 };
@@ -21,8 +23,8 @@ describe('monitor state machine', () => {
 
   it('PENDING + threshold failures → DOWN with went-down transition', () => {
     let counters = zero;
-    let status = 'PENDING';
-    let transition = 'none';
+    let status: MonitorStatus = 'PENDING';
+    let transition: StateTransition = 'none';
     for (let i = 0; i < 2; i++) {
       const r = advance({ status, counters, ok: false, ...thresholds });
       status = r.status;

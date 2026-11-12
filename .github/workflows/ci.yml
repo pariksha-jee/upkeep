@@ -70,7 +70,7 @@ jobs:
           NODE_ENV: test
           JWT_ACCESS_SECRET: ci-access-secret-at-least-32-chars!!
           JWT_REFRESH_SECRET: ci-refresh-secret-at-least-32-chars!
-          ENCRYPTION_KEY: Y2kta2V5LWZvci1jaS1vbmx5LTMyLWJ5dGVzIQ==
+          ENCRYPTION_KEY: s8PL5xMCAxUdOKMhxl0StMlbUH8JiVFzy0fXbqyzUMA=
           CORS_ORIGIN: http://localhost:3000
         run: pnpm test:e2e
 
