@@ -1,0 +1,11 @@
+# Upkeep edge — automatic TLS via Let's Encrypt.
+# Domain comes from the UPKEEP_DOMAIN env var (e.g. upkeep.example.com).
+{$UPKEEP_DOMAIN} {
+	# API surface (versioned, health probes, OpenAPI spec) → NestJS
+	reverse_proxy /v1/* api:4000
+	reverse_proxy /health/* api:4000
+	reverse_proxy /openapi.json api:4000
+
+	# Everything else → Next.js dashboard
+	reverse_proxy web:3000
+}

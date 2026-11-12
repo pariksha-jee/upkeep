@@ -1,0 +1,132 @@
+# Single-host production stack (PLAN §17.2).
+#   cp apps/api/.env.example apps/api/.env   # fill in real secrets
+#   export UPKEEP_DOMAIN=upkeep.example.com
+#   docker compose -f compose.prod.yml up -d --build
+#   docker compose -f compose.prod.yml --profile openvpn up -d openvpn-worker  # only if OpenVPN monitors are used
+#
+# Migrations are an EXPLICIT step (never at app boot):
+#   docker compose -f compose.prod.yml run --rm api sh -c "cd /app && npx prisma migrate deploy --schema packages/db/prisma/schema.prisma"
+#   — or from the repo: DATABASE_URL=... pnpm db:deploy
+
+name: upkeep
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      UPKEEP_DOMAIN: ${UPKEEP_DOMAIN:?set UPKEEP_DOMAIN}
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_started
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: runner
+    restart: unless-stopped
+    env_file: apps/api/.env
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+    expose:
+      - '4000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: runner
+    restart: unless-stopped
+    command: ['node', '--enable-source-maps', 'dist/worker.js']
+    env_file: apps/api/.env
+    environment:
+      NODE_ENV: production
+      UPKEEP_ROLE: worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Privileged OpenVPN tunnel worker — only needed for OpenVPN monitors.
+  openvpn-worker:
+    profiles: ['openvpn']
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: openvpn-runner
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+    env_file: apps/api/.env
+    environment:
+      NODE_ENV: production
+      UPKEEP_ROLE: worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${UPKEEP_DOMAIN:-http://localhost}
+    restart: unless-stopped
+    expose:
+      - '3000'
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: upkeep
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: upkeep
+    volumes:
+      - upkeep-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U upkeep -d upkeep']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - upkeep-redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  upkeep-pgdata:
+  upkeep-redisdata:
+  caddy-data:
+  caddy-config:

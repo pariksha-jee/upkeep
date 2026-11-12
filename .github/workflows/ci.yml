@@ -99,6 +99,13 @@ jobs:
           context: .
           file: apps/api/Dockerfile
           push: false
+      - name: Build OpenVPN worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          target: openvpn-runner
+          push: false
       - name: Build web image
         uses: docker/build-push-action@v6
         with:

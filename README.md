@@ -32,7 +32,14 @@ pnpm dev:worker        # check engine + notifications
 pnpm dev:web           # dashboard on :3000
 ```
 
+> **Open the dashboard at `http://127.0.0.1:3000`** (not `localhost:3000`) —
+> session cookies are SameSite-scoped and the API sits on `127.0.0.1:4000`.
+> Production serves both behind one domain, so this is dev-only.
+
 Default seed login: `demo@upkeep.dev` / `demo12345` (development only).
+
+**Production**: `docs/deployment/DEPLOYMENT.md` covers single-host
+docker-compose (Caddy TLS) and the split Vercel + containers topology.
 
 ## Repository layout
 

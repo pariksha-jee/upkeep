@@ -4,7 +4,12 @@
   "private": true,
   "type": "module",
   "description": "Upkeep headless REST API + check-engine worker (one image, two entrypoints)",
-  "engines": { "node": ">=22.0.0" },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "prebuild": "pnpm --filter @upkeep/core --filter @upkeep/db --filter @upkeep/api-client run build",
     "build": "tsc -p tsconfig.build.json",
