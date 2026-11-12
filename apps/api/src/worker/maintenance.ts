@@ -74,7 +74,7 @@ export class MaintenanceService implements OnApplicationBootstrap, OnModuleDestr
         max("responseTimeMs")::int,
         COALESCE(sum("responseTimeMs") FILTER (WHERE "status" = 'UP'), 0)::bigint
       FROM "Check"
-      WHERE "checkedAt" >= now() - interval '2 hours'
+      WHERE "checkedAt" >= (now() AT TIME ZONE 'utc') - interval '2 hours'
       GROUP BY 1, 2
       ON CONFLICT ("monitorId", "bucketStart") DO UPDATE SET
         "total" = EXCLUDED."total",
@@ -86,13 +86,17 @@ export class MaintenanceService implements OnApplicationBootstrap, OnModuleDestr
   }
 
   private async retention(): Promise<void> {
-    const cutoff = new Date(Date.now() - env.CHECK_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    // ISO string + explicit ::timestamp cast → naive-UTC comparison, immune
+    // to the session timezone (see dispatcher note).
+    const cutoffIso = new Date(
+      Date.now() - env.CHECK_RETENTION_DAYS * 24 * 60 * 60 * 1000,
+    ).toISOString();
     // Batched deletes (deleteMany has no LIMIT — raw ctid batches avoid long locks).
     let deleted = 0;
     for (;;) {
       const batch = await this.prisma.$executeRaw`
         DELETE FROM "Check" WHERE ctid IN (
-          SELECT ctid FROM "Check" WHERE "checkedAt" < ${cutoff} LIMIT 10000
+          SELECT ctid FROM "Check" WHERE "checkedAt" < ${cutoffIso}::timestamp LIMIT 10000
         )
       `;
       deleted += batch;

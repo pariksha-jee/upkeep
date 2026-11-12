@@ -36,7 +36,7 @@ describe('auth', () => {
     expect(res.status).toBe(201);
     expect(res.body.success).toBe(true);
     expect(res.body.data.accessToken).toBeTypeOf('string');
-    const cookies = res.headers['set-cookie'] as string[];
+    const cookies = (res.headers['set-cookie'] ?? []) as unknown as string[];
     expect(cookies.some((c) => c.startsWith('upkeep_at='))).toBe(true);
   });
 
@@ -106,15 +106,12 @@ describe('monitors (validation + SSRF guard)', () => {
   });
 
   it('rejects private targets without a tunnel (SSRF guard)', async () => {
-    const res = await http()
-      .post('/v1/monitors')
-      .set('authorization', `Bearer ${token}`)
-      .send({
-        type: 'HTTP',
-        name: 'meta',
-        target: 'http://169.254.169.254/latest',
-        intervalSeconds: 60,
-      });
+    const res = await http().post('/v1/monitors').set('authorization', `Bearer ${token}`).send({
+      type: 'HTTP',
+      name: 'meta',
+      target: 'http://169.254.169.254/latest',
+      intervalSeconds: 60,
+    });
     expect(res.status).toBe(400);
     expect(res.body.error.details?.[0]?.path).toBe('target');
   });
@@ -125,6 +122,41 @@ describe('monitors (validation + SSRF guard)', () => {
       .set('authorization', `Bearer ${token}`)
       .send({ type: 'HTTP', name: 'x', target: 'https://example.com', intervalSeconds: 45 });
     expect(res.status).toBe(400);
+  });
+
+  // Regression: stats SQL once used snake_case column names that don't exist
+  // in Prisma-created tables ("checked_at" vs "checkedAt") → 500s.
+  it('returns window stats after a real check (raw SQL column casing)', async () => {
+    const created = await http()
+      .post('/v1/monitors')
+      .set('authorization', `Bearer ${token}`)
+      .send({
+        type: 'HTTP',
+        name: 'stats-e2e',
+        target: 'https://example.com',
+        intervalSeconds: 3600,
+      });
+    const id = (created.body.data as { id: string }).id;
+
+    const checked = await http()
+      .post(`/v1/monitors/${id}/test`)
+      .set('authorization', `Bearer ${token}`);
+    expect(checked.status).toBe(201);
+
+    const stats = await http()
+      .get(`/v1/monitors/${id}/stats?window=1h`)
+      .set('authorization', `Bearer ${token}`);
+    expect(stats.status).toBe(200);
+    expect(stats.body.data.totalChecks).toBeGreaterThanOrEqual(1);
+    expect(stats.body.data.uptimeRatio).toBe(1);
+    expect(Array.isArray(stats.body.data.buckets)).toBe(true);
+    expect(stats.body.data.buckets.length).toBeGreaterThan(0);
+
+    const checks = await http()
+      .get(`/v1/monitors/${id}/checks`)
+      .set('authorization', `Bearer ${token}`);
+    expect(checks.status).toBe(200);
+    expect(checks.body.data.length).toBeGreaterThanOrEqual(1);
   });
 });
 

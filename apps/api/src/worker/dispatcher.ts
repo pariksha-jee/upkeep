@@ -43,14 +43,19 @@ export class DispatcherService implements OnApplicationBootstrap, OnModuleDestro
     if (this.running) return;
     this.running = true;
     try {
+      // All clock math is UTC-naive: Prisma stores DateTime as timestamp
+      // without time zone in UTC, so raw SQL must compare against
+      // (now() AT TIME ZONE 'utc') — never bare now(), whose session
+      // timezone would shift every comparison by the server's UTC offset.
       const claimed = await this.prisma.$queryRaw<
         Array<{ id: string; next_check_at: Date; interval_seconds: number }>
       >`
-        UPDATE "Monitor" AS m SET "nextCheckAt" = now() + (m."intervalSeconds" || ' seconds')::interval
+        UPDATE "Monitor" AS m
+        SET "nextCheckAt" = (now() AT TIME ZONE 'utc') + (m."intervalSeconds" || ' seconds')::interval
         WHERE m."id" IN (
           SELECT c."id" FROM "Monitor" c
           WHERE c."enabled" = true AND c."status" <> 'PAUSED'
-            AND c."nextCheckAt" <= now()
+            AND c."nextCheckAt" <= (now() AT TIME ZONE 'utc')
           ORDER BY c."nextCheckAt"
           FOR UPDATE SKIP LOCKED
           LIMIT ${BATCH}

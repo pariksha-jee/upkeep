@@ -29,3 +29,4 @@ apps/mobile/web-build/
 *.zip
 uploads/
 extract/
+*.rdb

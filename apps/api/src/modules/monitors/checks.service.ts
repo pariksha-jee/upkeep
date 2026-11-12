@@ -63,17 +63,22 @@ export class ChecksService {
     const start = new Date(end.getTime() - windowSeconds * 1000);
     const spec = BUCKET_SPEC[window];
 
+    // Timezone-safe raw SQL: naive-UTC "checkedAt" columns must be compared
+    // against (now() AT TIME ZONE 'utc'), never bare now() — the session
+    // timezone would otherwise shift every window by the server's UTC offset.
     const rows: RawBucket[] = await this.prisma.$queryRaw(
       Prisma.sql`
         SELECT
-          date_trunc(${spec.trunc}, checked_at) AS bucket,
+          date_trunc(${spec.trunc}, "checkedAt") AS bucket,
           count(*)::bigint AS total,
           count(*) FILTER (WHERE status = 'UP')::bigint AS up,
-          avg(response_time_ms) FILTER (WHERE status = 'UP')::float8 AS avg_ms,
-          min(response_time_ms)::int AS min_ms,
-          max(response_time_ms)::int AS max_ms
+          avg("responseTimeMs") FILTER (WHERE status = 'UP')::float8 AS avg_ms,
+          min("responseTimeMs")::int AS min_ms,
+          max("responseTimeMs")::int AS max_ms
         FROM "Check"
-        WHERE monitor_id = ${monitorId} AND checked_at >= ${start} AND checked_at < ${end}
+        WHERE "monitorId" = ${monitorId}
+          AND "checkedAt" >= (now() AT TIME ZONE 'utc') - (${windowSeconds} * interval '1 second')
+          AND "checkedAt" < (now() AT TIME ZONE 'utc')
         GROUP BY 1
         ORDER BY 1
       `,
